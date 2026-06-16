@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Sistema de Reserva de Vehículos</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+</style>
+</head>
+<body>
+
+<div class="header">
+
+    <div class="logo-container">
+        <img src="C:\Users\josec\Downloads\Agenda de vehivulos\Logo MSPAS.jpeg" alt="Logo MSPAS" width="250" height="100%">
+    </div>
+
+    <div class="titulo-container">
+        <h2>DISTRITO #3 SANTA CRUZ MULUÁ</h2>
+        <h4>Sistema de Reserva de Vehículos Institucionales</h4>
+        <p>🚑 Ambulancia | 🚙 Pick-up</p>
+    </div>
+
+</div>
+
+<div class="container mt-4">
+
+<div class="card p-4 mb-4">
+
+<h4>Nueva Reserva</h4>
+
+<form id="formReserva">
+
+<div class="row">
+
+<div class="col-md-6 mb-3">
+<label>Solicitante</label>
+<input type="text" id="solicitante" class="form-control" required>
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Cargo</label>
+<input type="text" id="cargo" class="form-control">
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Vehículo</label>
+<select id="vehiculo" class="form-control" required>
+<option value="">Seleccione</option>
+<option>Ambulancia</option>
+<option>Pick-up</option>
+</select>
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Fecha</label>
+<input type="date" id="fecha" class="form-control" required>
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Hora Salida</label>
+<input type="time" id="salida" class="form-control" required>
+</div>
+
+<div class="col-md-6 mb-3">
+<label>Hora Regreso</label>
+<input type="time" id="regreso" class="form-control" required>
+</div>
+
+<div class="col-md-12 mb-3">
+<label>Destino</label>
+<input type="text" id="destino" class="form-control" required>
+</div>
+
+<div class="col-md-12 mb-3">
+<label>Motivo</label>
+<textarea id="motivo" class="form-control"></textarea>
+</div>
+
+</div>
+
+<button class="btn btn-primary">
+Guardar Reserva
+</button>
+
+</form>
+
+</div>
+
+<div class="card p-4">
+
+<div class="d-flex justify-content-between mb-3">
+<h4>Reservas Registradas</h4>
+
+<div>
+<button class="btn btn-success"
+onclick="exportarExcel()">
+Excel
+</button>
+
+<button class="btn btn-danger"
+onclick="exportarPDF()">
+PDF
+</button>
+</div>
+
+</div>
+
+<div class="table-container">
+
+<table class="table table-bordered table-striped"
+id="tablaReservas">
+
+<thead>
+
+<tr>
+<th>Vehículo</th>
+<th>Fecha</th>
+<th>Salida</th>
+<th>Regreso</th>
+<th>Destino</th>
+<th>Solicitante</th>
+<th>Acción</th>
+</tr>
+
+</thead>
+
+<tbody></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+
+let reservas =
+JSON.parse(localStorage.getItem("reservas")) || [];
+
+const form =
+document.getElementById("formReserva");
+
+form.addEventListener("submit", function(e){
+
+e.preventDefault();
+
+let solicitante =
+document.getElementById("solicitante").value;
+
+let cargo =
+document.getElementById("cargo").value;
+
+let vehiculo =
+document.getElementById("vehiculo").value;
+
+let fecha =
+document.getElementById("fecha").value;
+
+let salida =
+document.getElementById("salida").value;
+
+let regreso =
+document.getElementById("regreso").value;
+
+let destino =
+document.getElementById("destino").value;
+
+let motivo =
+document.getElementById("motivo").value;
+
+let dia =
+new Date(fecha).getDay();
+
+if(dia===0 || dia===6){
+alert("Solo se permiten reservas de lunes a viernes.");
+return;
+}
+
+let conflicto = reservas.find(r =>
+r.vehiculo===vehiculo &&
+r.fecha===fecha &&
+(
+(salida >= r.salida && salida < r.regreso) ||
+(regreso > r.salida && regreso <= r.regreso) ||
+(salida <= r.salida && regreso >= r.regreso)
+)
+);
+
+if(conflicto){
+alert("El vehículo ya está reservado en ese horario.");
+return;
+}
+
+reservas.push({
+solicitante,
+cargo,
+vehiculo,
+fecha,
+salida,
+regreso,
+destino,
+motivo
+});
+
+localStorage.setItem(
+"reservas",
+JSON.stringify(reservas)
+);
+
+form.reset();
+
+mostrarReservas();
+
+alert("Reserva registrada correctamente.");
+
+});
+
+function mostrarReservas(){
+
+let tbody =
+document.querySelector("#tablaReservas tbody");
+
+tbody.innerHTML = "";
+
+reservas.forEach((r,index)=>{
+
+tbody.innerHTML += `
+<tr>
+<td>${r.vehiculo}</td>
+<td>${r.fecha}</td>
+<td>${r.salida}</td>
+<td>${r.regreso}</td>
+<td>${r.destino}</td>
+<td>${r.solicitante}</td>
+<td>
+<button class="btn btn-sm btn-danger"
+onclick="eliminarReserva(${index})">
+Eliminar
+</button>
+</td>
+</tr>
+`;
+
+});
+
+}
+
+function eliminarReserva(index){
+
+if(confirm("¿Eliminar reserva?")){
+
+reservas.splice(index,1);
+
+localStorage.setItem(
+"reservas",
+JSON.stringify(reservas)
+);
+
+mostrarReservas();
+
+}
+
+}
+
+function exportarExcel(){
+
+let tabla =
+document.getElementById("tablaReservas");
+
+let libro =
+XLSX.utils.table_to_book(tabla,{
+sheet:"Reservas"
+});
+
+XLSX.writeFile(
+libro,
+"Reservas_Vehiculos.xlsx"
+);
+
+}
+
+async function exportarPDF(){
+
+const { jsPDF } = window.jspdf;
+
+let doc = new jsPDF();
+
+doc.setFontSize(16);
+
+doc.text(
+"Centro de Salud - Reservas de Vehículos",
+14,
+15
+);
+
+doc.autoTable({
+html:'#tablaReservas',
+startY:25
+});
+
+doc.save(
+"Reservas_Vehiculos.pdf"
+);
+
+}
+
+mostrarReservas();
+
+</script>
+
+</body>
+</html>
